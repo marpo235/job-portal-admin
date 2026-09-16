@@ -62,6 +62,19 @@ function getAudioFileName(sampleId, index, value) {
   return `${sampleId}_ch${index + 1}${extension}`;
 }
 
+function formatTimestamp(value) {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '—';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function formatLocation(app) {
+  const parts = [app.city, app.country].filter(Boolean);
+  return parts.length > 0 ? parts.join(', ') : '—';
+}
+
 function stringToHue(str) {
   let h = 0;
   for (let i = 0; i < str.length; i++) {
@@ -401,13 +414,16 @@ export default function ApplicationsTable({
                     Sample ID
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Date
+                    Submitted At
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Name
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Email
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Location
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Age
@@ -620,13 +636,16 @@ function ApplicationRow({ app, sampleId, bgColor, isSelected, onToggle, onEdit, 
         {sampleId}
       </td>
       <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600">
-        {app.submitted_at ? new Date(app.submitted_at).toLocaleString() : '—'}
+        {formatTimestamp(app.submitted_at)}
       </td>
       <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
         {app.full_name}
       </td>
       <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600">
         {app.email}
+      </td>
+      <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600">
+        {formatLocation(app)}
       </td>
       <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600">
         {app.age ?? '—'}
