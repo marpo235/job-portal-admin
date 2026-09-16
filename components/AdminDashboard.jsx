@@ -33,6 +33,19 @@ export default function AdminDashboard() {
     );
   };
 
+  const sampleIdMap = useMemo(() => {
+    const sorted = [...applications].sort((a, b) => {
+      const ta = new Date(a.submitted_at || 0).getTime();
+      const tb = new Date(b.submitted_at || 0).getTime();
+      return ta - tb;
+    });
+    const map = {};
+    sorted.forEach((app, index) => {
+      map[app.id] = `sample${String(index + 1).padStart(3, '0')}`;
+    });
+    return map;
+  }, [applications]);
+
   const fetchApplications = async () => {
     const { data, error } = await supabase
       .from('job_applications')
@@ -137,6 +150,7 @@ export default function AdminDashboard() {
           applications={filteredApplications}
           loading={false}
           onUpdate={handleUpdateApplication}
+          sampleIdMap={sampleIdMap}
         />
       </main>
 

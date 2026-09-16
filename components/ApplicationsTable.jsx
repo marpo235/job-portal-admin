@@ -47,12 +47,19 @@ async function getAudioUrl(value) {
   return data.signedUrl;
 }
 
-function getFileName(app, value, index) {
-  if (!value) return `recording-${index + 1}.wav`;
-  const fromPath = value.split('/').pop() || '';
-  if (fromPath && fromPath.includes('.')) return fromPath;
-  const base = (app.full_name || 'recording').replace(/\s+/g, '_');
-  return `${base}-${index + 1}.wav`;
+function getAudioExtension(value) {
+  if (!value || typeof value !== 'string') return '.mp3';
+  const withoutQuery = value.split('?')[0].split('#')[0];
+  const ext = withoutQuery.split('.').pop() || '';
+  if (ext && /^[a-z0-9]+$/i.test(ext) && ext.length <= 6) {
+    return `.${ext.toLowerCase()}`;
+  }
+  return '.mp3';
+}
+
+function getAudioFileName(sampleId, index, value) {
+  const extension = getAudioExtension(value);
+  return `${sampleId}_ch${index + 1}${extension}`;
 }
 
 function stringToHue(str) {
@@ -63,7 +70,12 @@ function stringToHue(str) {
   return h;
 }
 
-export default function ApplicationsTable({ applications, loading, onUpdate }) {
+export default function ApplicationsTable({
+  applications,
+  loading,
+  onUpdate,
+  sampleIdMap,
+}) {
   const [view, setView] = useState('active');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [editing, setEditing] = useState(null);
@@ -171,18 +183,20 @@ export default function ApplicationsTable({ applications, loading, onUpdate }) {
     const updates = {
       full_name: editForm.full_name,
       email: editForm.email,
-      age: editForm.age === '' ? null : Number(editForm.age),
+      age: editForm.age === '' ? null : String(editForm.age),
       gender: editForm.gender,
     };
 
-    const { error } = await supabase
+    console.log('Saving edits for', editing, updates);
+    const { data, error } = await supabase
       .from('job_applications')
       .update(updates)
-      .eq('id', editing);
+      .eq('id', editing)
+      .select();
+    console.log('Supabase edit result:', { data, error });
 
     if (error) {
-      alert('Update failed. Please try again.');
-      console.error(error);
+      alert(`Update failed: ${error.message}`);
       return;
     }
 
@@ -191,19 +205,37 @@ export default function ApplicationsTable({ applications, loading, onUpdate }) {
   };
 
   const archiveApp = async (app) => {
-    const updates = { archived: true };
-    const { error } = await supabase
+    const primary = { status: 'archived' };
+    console.log('Archiving application', app.id, primary);
+    const { data, error } = await supabase
       .from('job_applications')
-      .update(updates)
-      .eq('id', app.id);
+      .update(primary)
+      .eq('id', app.id)
+      .select();
+    console.log('Supabase archive (status) result:', { data, error });
 
     if (error) {
-      alert('Archive failed. Please try again.');
-      console.error(error);
+      const fallback = { archived: true };
+      console.log('Falling back to archived column', app.id, fallback);
+      const { data: data2, error: error2 } = await supabase
+        .from('job_applications')
+        .update(fallback)
+        .eq('id', app.id)
+        .select();
+      console.log('Supabase archive (archived) result:', { data: data2, error: error2 });
+
+      if (error2) {
+        alert(
+          `Archive failed: ${error2.message || error.message}`
+        );
+        return;
+      }
+
+      onUpdate(app.id, { ...fallback, status: 'archived' });
       return;
     }
 
-    onUpdate(app.id, updates);
+    onUpdate(app.id, { ...primary, archived: true });
   };
 
   const bulkDownload = async () => {
@@ -218,12 +250,13 @@ export default function ApplicationsTable({ applications, loading, onUpdate }) {
 
       for (const app of selectedApps) {
         const audioFiles = getAudioFiles(app);
+        const sampleId = sampleIdMap?.[app.id] || 'sample000';
         for (let i = 0; i < audioFiles.length; i++) {
           const value = audioFiles[i];
           const url = await getAudioUrl(value);
           if (!url) continue;
 
-          const filename = getFileName(app, value, i);
+          const filename = getAudioFileName(sampleId, i, value);
           const res = await fetch(url);
           if (!res.ok) continue;
 
@@ -326,6 +359,9 @@ export default function ApplicationsTable({ applications, loading, onUpdate }) {
                     />
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Sample ID
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Date
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
@@ -353,6 +389,7 @@ export default function ApplicationsTable({ applications, loading, onUpdate }) {
                   <ApplicationRow
                     key={app.id}
                     app={app}
+                    sampleId={sampleIdMap?.[app.id] || 'sample000'}
                     bgColor={getRowColor(app)}
                     isSelected={selectedIds.has(app.id)}
                     onToggle={toggleSelect}
@@ -372,6 +409,9 @@ export default function ApplicationsTable({ applications, loading, onUpdate }) {
                 onChange={(e) => setRowsPerPage(Number(e.target.value))}
                 className="rounded border border-slate-300 bg-white px-2 py-1 text-sm focus:border-blue-600 focus:ring-blue-600"
               >
+                <option value={1}>1</option>
+                <option value={2}>2</option>
+                <option value={5}>5</option>
                 <option value={10}>10</option>
                 <option value={20}>20</option>
                 <option value={50}>50</option>
@@ -486,7 +526,7 @@ export default function ApplicationsTable({ applications, loading, onUpdate }) {
   );
 }
 
-function ApplicationRow({ app, bgColor, isSelected, onToggle, onEdit, onArchive }) {
+function ApplicationRow({ app, sampleId, bgColor, isSelected, onToggle, onEdit, onArchive }) {
   const audioFiles = useMemo(() => getAudioFiles(app), [app]);
   const [signedUrls, setSignedUrls] = useState(() =>
     audioFiles.map(() => null)
@@ -519,7 +559,7 @@ function ApplicationRow({ app, bgColor, isSelected, onToggle, onEdit, onArchive 
 
     const a = document.createElement('a');
     a.href = url;
-    a.download = getFileName(app, audioFiles[index], index);
+    a.download = getAudioFileName(sampleId, index, audioFiles[index]);
     a.click();
   };
 
@@ -535,6 +575,9 @@ function ApplicationRow({ app, bgColor, isSelected, onToggle, onEdit, onArchive 
           onChange={() => onToggle(app.id)}
           className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
         />
+      </td>
+      <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-slate-700">
+        {sampleId}
       </td>
       <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600">
         {app.submitted_at ? new Date(app.submitted_at).toLocaleString() : '—'}
