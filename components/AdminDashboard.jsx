@@ -27,6 +27,12 @@ export default function AdminDashboard() {
     );
   }, [search, applications]);
 
+  const handleUpdateApplication = (id, updates) => {
+    setApplications((prev) =>
+      prev.map((app) => (app.id === id ? { ...app, ...updates } : app))
+    );
+  };
+
   const fetchApplications = async () => {
     const { data, error } = await supabase
       .from('job_applications')
@@ -127,7 +133,11 @@ export default function AdminDashboard() {
           />
         </div>
 
-        <ApplicationsTable applications={filteredApplications} loading={false} />
+        <ApplicationsTable
+          applications={filteredApplications}
+          loading={false}
+          onUpdate={handleUpdateApplication}
+        />
       </main>
 
       <footer className="bg-white border-t border-slate-200 py-6 mt-auto">
