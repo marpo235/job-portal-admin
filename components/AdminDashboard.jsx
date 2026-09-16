@@ -50,6 +50,7 @@ export default function AdminDashboard() {
     const { data, error } = await supabase
       .from('job_applications')
       .select('*')
+      .or('archived.eq.0,archived.is.null,archived.eq.1')
       .order('submitted_at', { ascending: false });
 
     if (error) {

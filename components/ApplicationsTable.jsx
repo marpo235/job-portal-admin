@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import JSZip from 'jszip';
 
 function isArchived(app) {
-  return app.archived === 1 || app.archived === true || app.status === 'archived';
+  return app.archived === 1 || app.archived === true;
 }
 
 function getAudioFiles(app) {
@@ -210,8 +210,8 @@ export default function ApplicationsTable({
   const toggleArchive = async (app) => {
     const currentlyArchived = isArchived(app);
     const target = currentlyArchived
-      ? { archived: 0, status: 'active' }
-      : { archived: 1, status: 'archived' };
+      ? { archived: 0 }
+      : { archived: 1 };
 
     console.log(
       currentlyArchived ? 'Unarchiving' : 'Archiving',
@@ -241,8 +241,8 @@ export default function ApplicationsTable({
     const ids = Array.from(selectedIds);
     const target =
       view === 'archived'
-        ? { archived: 0, status: 'active' }
-        : { archived: 1, status: 'archived' };
+        ? { archived: 0 }
+        : { archived: 1 };
 
     console.log('Bulk toggling archive for', ids, target);
     const { data, error } = await supabase
