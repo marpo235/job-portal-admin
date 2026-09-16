@@ -89,8 +89,8 @@ export default function ApplicationsTable({
   onUpdate,
   onRefresh,
   sampleIdMap,
+  view,
 }) {
-  const [view, setView] = useState('active');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [editing, setEditing] = useState(null);
   const [editForm, setEditForm] = useState({
@@ -337,31 +337,8 @@ export default function ApplicationsTable({
 
   return (
     <div className="space-y-4">
-      <nav className="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex gap-2">
-          <button
-            onClick={() => setView('active')}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-              view === 'active'
-                ? 'bg-slate-900 text-white'
-                : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
-            }`}
-          >
-            Recordings ({activeCount})
-          </button>
-          <button
-            onClick={() => setView('archived')}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-              view === 'archived'
-                ? 'bg-slate-900 text-white'
-                : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
-            }`}
-          >
-            Archived Recordings ({archivedCount})
-          </button>
-        </div>
-
-        {selectedIds.size > 0 && (
+      {selectedIds.size > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-end gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex gap-2">
             <button
               onClick={bulkArchive}
@@ -384,8 +361,8 @@ export default function ApplicationsTable({
                 : `Download Selected Audio (${selectedIds.size})`}
             </button>
           </div>
-        )}
-      </nav>
+        </div>
+      )}
 
       {visibleApplications.length === 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white p-12 text-center">
