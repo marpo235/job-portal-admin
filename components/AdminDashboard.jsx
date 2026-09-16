@@ -150,6 +150,7 @@ export default function AdminDashboard() {
           applications={filteredApplications}
           loading={false}
           onUpdate={handleUpdateApplication}
+          onRefresh={fetchApplications}
           sampleIdMap={sampleIdMap}
         />
       </main>

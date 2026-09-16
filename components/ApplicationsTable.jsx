@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import JSZip from 'jszip';
 
 function isArchived(app) {
-  return app.archived === true || app.status === 'archived';
+  return app.archived === 1 || app.archived === true || app.status === 'archived';
 }
 
 function getAudioFiles(app) {
@@ -74,6 +74,7 @@ export default function ApplicationsTable({
   applications,
   loading,
   onUpdate,
+  onRefresh,
   sampleIdMap,
 }) {
   const [view, setView] = useState('active');
@@ -88,6 +89,7 @@ export default function ApplicationsTable({
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [bulkDownloading, setBulkDownloading] = useState(false);
+  const [bulkArchiving, setBulkArchiving] = useState(false);
   const headerCheckboxRef = useRef(null);
 
   const allApplications = applications || [];
@@ -202,40 +204,64 @@ export default function ApplicationsTable({
 
     onUpdate(editing, updates);
     setEditing(null);
+    if (onRefresh) await onRefresh();
   };
 
-  const archiveApp = async (app) => {
-    const primary = { status: 'archived' };
-    console.log('Archiving application', app.id, primary);
+  const toggleArchive = async (app) => {
+    const currentlyArchived = isArchived(app);
+    const target = currentlyArchived
+      ? { archived: 0, status: 'active' }
+      : { archived: 1, status: 'archived' };
+
+    console.log(
+      currentlyArchived ? 'Unarchiving' : 'Archiving',
+      app.id,
+      target
+    );
     const { data, error } = await supabase
       .from('job_applications')
-      .update(primary)
+      .update(target)
       .eq('id', app.id)
       .select();
-    console.log('Supabase archive (status) result:', { data, error });
+    console.log('Supabase toggle archive result:', { data, error });
 
     if (error) {
-      const fallback = { archived: true };
-      console.log('Falling back to archived column', app.id, fallback);
-      const { data: data2, error: error2 } = await supabase
-        .from('job_applications')
-        .update(fallback)
-        .eq('id', app.id)
-        .select();
-      console.log('Supabase archive (archived) result:', { data: data2, error: error2 });
-
-      if (error2) {
-        alert(
-          `Archive failed: ${error2.message || error.message}`
-        );
-        return;
-      }
-
-      onUpdate(app.id, { ...fallback, status: 'archived' });
+      alert(`${currentlyArchived ? 'Unarchive' : 'Archive'} failed: ${error.message}`);
       return;
     }
 
-    onUpdate(app.id, { ...primary, archived: true });
+    onUpdate(app.id, target);
+    if (onRefresh) await onRefresh();
+  };
+
+  const bulkArchive = async () => {
+    if (selectedIds.size === 0) return;
+    setBulkArchiving(true);
+
+    const ids = Array.from(selectedIds);
+    const target =
+      view === 'archived'
+        ? { archived: 0, status: 'active' }
+        : { archived: 1, status: 'archived' };
+
+    console.log('Bulk toggling archive for', ids, target);
+    const { data, error } = await supabase
+      .from('job_applications')
+      .update(target)
+      .in('id', ids)
+      .select();
+    console.log('Supabase bulk archive result:', { data, error });
+
+    if (error) {
+      alert(`Bulk action failed: ${error.message}`);
+      setBulkArchiving(false);
+      return;
+    }
+
+    ids.forEach((id) => onUpdate(id, target));
+    setSelectedIds(new Set());
+    if (onRefresh) await onRefresh();
+    setBulkArchiving(false);
   };
 
   const bulkDownload = async () => {
@@ -298,7 +324,7 @@ export default function ApplicationsTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <nav className="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex gap-2">
           <button
             onClick={() => setView('active')}
@@ -308,7 +334,7 @@ export default function ApplicationsTable({
                 : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
             }`}
           >
-            Active ({activeCount})
+            Recordings ({activeCount})
           </button>
           <button
             onClick={() => setView('archived')}
@@ -318,29 +344,42 @@ export default function ApplicationsTable({
                 : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
             }`}
           >
-            Archived ({archivedCount})
+            Archived Recordings ({archivedCount})
           </button>
         </div>
 
         {selectedIds.size > 0 && (
-          <button
-            onClick={bulkDownload}
-            disabled={bulkDownloading}
-            className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
-          >
-            {bulkDownloading
-              ? 'Preparing zip...'
-              : `Download Selected Audio (${selectedIds.size})`}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={bulkArchive}
+              disabled={bulkArchiving}
+              className="inline-flex items-center rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed transition"
+            >
+              {bulkArchiving
+                ? 'Updating...'
+                : view === 'archived'
+                ? 'Bulk Unarchive'
+                : 'Bulk Archive'}
+            </button>
+            <button
+              onClick={bulkDownload}
+              disabled={bulkDownloading}
+              className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
+            >
+              {bulkDownloading
+                ? 'Preparing zip...'
+                : `Download Selected Audio (${selectedIds.size})`}
+            </button>
+          </div>
         )}
-      </div>
+      </nav>
 
       {visibleApplications.length === 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white p-12 text-center">
           <p className="text-slate-500">
             {view === 'active'
-              ? 'No active applications found.'
-              : 'No archived applications found.'}
+              ? 'No recordings found.'
+              : 'No archived recordings found.'}
           </p>
         </div>
       ) : (
@@ -394,7 +433,7 @@ export default function ApplicationsTable({
                     isSelected={selectedIds.has(app.id)}
                     onToggle={toggleSelect}
                     onEdit={openEdit}
-                    onArchive={archiveApp}
+                    onArchive={toggleArchive}
                   />
                 ))}
               </tbody>
@@ -532,6 +571,7 @@ function ApplicationRow({ app, sampleId, bgColor, isSelected, onToggle, onEdit, 
     audioFiles.map(() => null)
   );
   const [loadingAudio, setLoadingAudio] = useState(true);
+  const archived = isArchived(app);
 
   useEffect(() => {
     setLoadingAudio(true);
@@ -636,10 +676,13 @@ function ApplicationRow({ app, sampleId, bgColor, isSelected, onToggle, onEdit, 
           </button>
           <button
             onClick={() => onArchive(app)}
-            disabled={isArchived(app)}
-            className="inline-flex items-center rounded bg-slate-700 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className={`inline-flex items-center rounded px-2 py-1 text-xs font-medium text-white transition ${
+              archived
+                ? 'bg-green-600 hover:bg-green-700'
+                : 'bg-slate-700 hover:bg-slate-800'
+            }`}
           >
-            Archive
+            {archived ? 'Unarchive' : 'Archive'}
           </button>
         </div>
       </td>
