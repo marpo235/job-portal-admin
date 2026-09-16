@@ -217,7 +217,7 @@ export default function ApplicationsTable({
 
     onUpdate(editing, updates);
     setEditing(null);
-    if (onRefresh) await onRefresh();
+    if (onRefresh) onRefresh();
   };
 
   const toggleArchive = async (app) => {
@@ -244,7 +244,7 @@ export default function ApplicationsTable({
     }
 
     onUpdate(app.id, target);
-    if (onRefresh) await onRefresh();
+    if (onRefresh) onRefresh();
   };
 
   const bulkArchive = async () => {
@@ -273,7 +273,7 @@ export default function ApplicationsTable({
 
     ids.forEach((id) => onUpdate(id, target));
     setSelectedIds(new Set());
-    if (onRefresh) await onRefresh();
+    if (onRefresh) onRefresh();
     setBulkArchiving(false);
   };
 
@@ -410,31 +410,31 @@ export default function ApplicationsTable({
                       className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
                     />
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Sample ID
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Submitted At
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Name
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Email
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Location
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Age
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Gender
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Audio Recordings
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -632,28 +632,28 @@ function ApplicationRow({ app, sampleId, bgColor, isSelected, onToggle, onEdit, 
           className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
         />
       </td>
-      <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-slate-700">
+      <td className="px-3 py-3 whitespace-nowrap text-sm font-semibold text-slate-700">
         {sampleId}
       </td>
-      <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600">
+      <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600">
         {formatTimestamp(app.submitted_at)}
       </td>
-      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+      <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-slate-900">
         {app.full_name}
       </td>
-      <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600">
+      <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600">
         {app.email}
       </td>
-      <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600">
+      <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600">
         {formatLocation(app)}
       </td>
-      <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600">
+      <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600">
         {app.age ?? '—'}
       </td>
-      <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600">
+      <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600">
         {app.gender ?? '—'}
       </td>
-      <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600 min-w-[260px]">
+      <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600 min-w-[260px]">
         {loadingAudio ? (
           <p className="text-xs text-slate-500">Loading audio...</p>
         ) : audioFiles.length === 0 ? (
@@ -685,7 +685,7 @@ function ApplicationRow({ app, sampleId, bgColor, isSelected, onToggle, onEdit, 
           </div>
         )}
       </td>
-      <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600">
+      <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600">
         <div className="flex gap-2">
           <button
             onClick={() => onEdit(app)}

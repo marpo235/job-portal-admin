@@ -131,7 +131,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header user={user} onSignOut={() => setUser(null)} />
-      <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-grow w-full max-w-[1800px] mx-auto px-4 sm:px-8 py-8">
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-slate-900">Applications</h2>
           <p className="text-slate-600 text-sm">Review and listen to submitted voice samples.</p>
@@ -157,7 +157,7 @@ export default function AdminDashboard() {
       </main>
 
       <footer className="bg-white border-t border-slate-200 py-6 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-500">
+        <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-8 text-center text-sm text-slate-500">
           &copy; 2026 Stealth Translations Ltd. All rights reserved.
         </div>
       </footer>
