@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import Header from './Header';
 import Login from './Login';
 import ApplicationsTable from './ApplicationsTable';
+import VideoApplicationsTable from './VideoApplicationsTable';
 import ContactQueries from './ContactQueries';
 
 const allowedAdminEmails = (process.env.NEXT_PUBLIC_ALLOWED_ADMIN_EMAILS || '')
@@ -16,6 +17,7 @@ export default function AdminDashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [applications, setApplications] = useState([]);
+  const [videoApplications, setVideoApplications] = useState([]);
   const [contactQueries, setContactQueries] = useState([]);
   const [search, setSearch] = useState('');
   const [recordingsView, setRecordingsView] = useState('active');
@@ -87,6 +89,20 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchVideoApplications = async () => {
+    const { data, error } = await supabase
+      .from('video_job_applications')
+      .select('*')
+      .order('submitted_at', { ascending: false });
+
+    if (error) {
+      console.error('Failed to fetch video applications:', error);
+      setVideoApplications([]);
+    } else {
+      setVideoApplications(data || []);
+    }
+  };
+
   const checkUser = async (session) => {
     if (!session?.user) {
       setUser(null);
@@ -106,6 +122,7 @@ export default function AdminDashboard() {
     setUser(session.user);
     setAccessDenied(false);
     await fetchApplications();
+    await fetchVideoApplications();
     await fetchContactQueries();
     setLoading(false);
   };
@@ -192,6 +209,16 @@ export default function AdminDashboard() {
             Archived Recordings ({archivedCount})
           </button>
           <button
+            onClick={() => setActiveSection('video')}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+              activeSection === 'video'
+                ? 'bg-slate-900 text-white'
+                : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+            }`}
+          >
+            Video Applications ({videoApplications.length})
+          </button>
+          <button
             onClick={() => setActiveSection('contact')}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
               activeSection === 'contact'
@@ -203,7 +230,7 @@ export default function AdminDashboard() {
           </button>
         </nav>
 
-        {activeSection === 'recordings' ? (
+        {activeSection === 'recordings' && (
           <>
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-slate-900">
@@ -237,7 +264,24 @@ export default function AdminDashboard() {
               view={recordingsView}
             />
           </>
-        ) : (
+        )}
+
+        {activeSection === 'video' && (
+          <>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-slate-900">Video Applications</h2>
+              <p className="text-slate-600 text-sm">Review submitted video samples for the US English video recording project.</p>
+            </div>
+
+            <VideoApplicationsTable
+              applications={videoApplications}
+              loading={false}
+              onRefresh={fetchVideoApplications}
+            />
+          </>
+        )}
+
+        {activeSection === 'contact' && (
           <>
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-slate-900">Contact Queries</h2>
