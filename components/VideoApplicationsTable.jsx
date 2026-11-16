@@ -82,6 +82,7 @@ export default function VideoApplicationsTable({
   const [editForm, setEditForm] = useState(EMPTY_EDIT);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(50);
+  const [accentFilter, setAccentFilter] = useState('');
   const [bulkArchiving, setBulkArchiving] = useState(false);
   const headerCheckboxRef = useRef(null);
 
@@ -121,12 +122,23 @@ export default function VideoApplicationsTable({
     return colors;
   }, [allApplications]);
 
+  const accentOptions = useMemo(() => {
+    const set = new Set(
+      allApplications
+        .map((app) => (app.accent || '').trim())
+        .filter(Boolean)
+    );
+    return [...set].sort();
+  }, [allApplications]);
+
   const visibleApplications = useMemo(
     () =>
-      allApplications.filter((app) =>
-        view === 'active' ? !isArchived(app) : isArchived(app)
+      allApplications.filter(
+        (app) =>
+          (view === 'active' ? !isArchived(app) : isArchived(app)) &&
+          (!accentFilter || (app.accent || '') === accentFilter)
       ),
-    [allApplications, view]
+    [allApplications, view, accentFilter]
   );
 
   const totalPages = Math.max(1, Math.ceil(visibleApplications.length / rowsPerPage));
@@ -255,6 +267,22 @@ export default function VideoApplicationsTable({
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <label htmlFor="accent-filter" className="text-sm font-medium text-slate-600">
+          Accent:
+        </label>
+        <select
+          id="accent-filter"
+          value={accentFilter}
+          onChange={(e) => setAccentFilter(e.target.value)}
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-blue-600 focus:ring-blue-600"
+        >
+          <option value="">All accents</option>
+          {accentOptions.map((a) => (
+            <option key={a} value={a}>{a}</option>
+          ))}
+        </select>
+      </div>
       {selectedIds.size > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-end gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <button
@@ -296,12 +324,12 @@ export default function VideoApplicationsTable({
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Sample ID</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Submitted At</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Accent</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Location</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Age</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Gender</th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Accent</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Origin</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Residence</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Home Studio</th>
@@ -503,12 +531,12 @@ function VideoApplicationRow({ app, sampleId, bgColor, isSelected, onToggle, onE
       </td>
       <td className="px-3 py-3 whitespace-nowrap text-sm font-semibold text-slate-700">{sampleId}</td>
       <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600">{formatTimestamp(app.submitted_at)}</td>
+      <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600">{app.accent ?? '—'}</td>
       <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-slate-900">{app.full_name}</td>
       <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600">{app.email}</td>
       <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600">{formatLocation(app)}</td>
       <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600">{app.age ?? '—'}</td>
       <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600">{app.gender ?? '—'}</td>
-      <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600">{app.accent ?? '—'}</td>
       <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600">
         {[app.state_of_origin, app.country_of_origin].filter(Boolean).join(', ') || '—'}
       </td>
