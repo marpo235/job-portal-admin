@@ -21,6 +21,7 @@ export default function AdminDashboard() {
   const [contactQueries, setContactQueries] = useState([]);
   const [search, setSearch] = useState('');
   const [recordingsView, setRecordingsView] = useState('active');
+  const [videoView, setVideoView] = useState('active');
   const [activeSection, setActiveSection] = useState('recordings');
   const [accessDenied, setAccessDenied] = useState(false);
 
@@ -35,6 +36,12 @@ export default function AdminDashboard() {
 
   const handleUpdateApplication = (id, updates) => {
     setApplications((prev) =>
+      prev.map((app) => (app.id === id ? { ...app, ...updates } : app))
+    );
+  };
+
+  const handleUpdateVideoApplication = (id, updates) => {
+    setVideoApplications((prev) =>
       prev.map((app) => (app.id === id ? { ...app, ...updates } : app))
     );
   };
@@ -150,6 +157,8 @@ export default function AdminDashboard() {
   const isArchived = (app) => app.archived === 1 || app.archived === true;
   const activeCount = applications.filter((app) => !isArchived(app)).length;
   const archivedCount = applications.length - activeCount;
+  const videoActiveCount = videoApplications.filter((app) => !isArchived(app)).length;
+  const videoArchivedCount = videoApplications.length - videoActiveCount;
   const contactCount = contactQueries.length;
 
   if (loading) {
@@ -193,7 +202,7 @@ export default function AdminDashboard() {
                 : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
             }`}
           >
-            Recordings ({activeCount})
+            Voice Recordings ({activeCount})
           </button>
           <button
             onClick={() => {
@@ -206,17 +215,33 @@ export default function AdminDashboard() {
                 : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
             }`}
           >
-            Archived Recordings ({archivedCount})
+            Archived Voice Recordings ({archivedCount})
           </button>
           <button
-            onClick={() => setActiveSection('video')}
+            onClick={() => {
+              setActiveSection('video');
+              setVideoView('active');
+            }}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-              activeSection === 'video'
+              activeSection === 'video' && videoView === 'active'
                 ? 'bg-slate-900 text-white'
                 : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
             }`}
           >
-            Video Applications ({videoApplications.length})
+            Video Recordings ({videoActiveCount})
+          </button>
+          <button
+            onClick={() => {
+              setActiveSection('video');
+              setVideoView('archived');
+            }}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+              activeSection === 'video' && videoView === 'archived'
+                ? 'bg-slate-900 text-white'
+                : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+            }`}
+          >
+            Archived Video Recordings ({videoArchivedCount})
           </button>
           <button
             onClick={() => setActiveSection('contact')}
@@ -234,7 +259,9 @@ export default function AdminDashboard() {
           <>
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-slate-900">
-                {recordingsView === 'archived' ? 'Archived Recordings' : 'Recordings'}
+                {recordingsView === 'archived'
+                  ? 'Archived Voice Recordings — Two-Person Conversation Project'
+                  : 'Voice Recordings — Two-Person Conversation Project'}
               </h2>
               <p className="text-slate-600 text-sm">
                 {recordingsView === 'archived'
@@ -269,14 +296,24 @@ export default function AdminDashboard() {
         {activeSection === 'video' && (
           <>
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-slate-900">Video Applications</h2>
-              <p className="text-slate-600 text-sm">Review submitted video samples for the US English video recording project.</p>
+              <h2 className="text-2xl font-bold text-slate-900">
+                {videoView === 'archived'
+                  ? 'Archived Video Recordings — US English Video Project'
+                  : 'Video Recordings — US English Video Project'}
+              </h2>
+              <p className="text-slate-600 text-sm">
+                {videoView === 'archived'
+                  ? 'View previously archived video applications.'
+                  : 'Review submitted video samples for the one-person US English video recording project.'}
+              </p>
             </div>
 
             <VideoApplicationsTable
               applications={videoApplications}
               loading={false}
+              onUpdate={handleUpdateVideoApplication}
               onRefresh={fetchVideoApplications}
+              view={videoView}
             />
           </>
         )}

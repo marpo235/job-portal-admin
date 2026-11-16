@@ -71,7 +71,7 @@ function formatTimestamp(value) {
 }
 
 function formatLocation(app) {
-  const parts = [app.city, app.country].filter(Boolean);
+  const parts = [app.city, app.region, app.country].filter(Boolean);
   return parts.length > 0 ? parts.join(', ') : '—';
 }
 
@@ -409,6 +409,9 @@ export default function ApplicationsTable({
                     Gender
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Accent
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Audio Recordings
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
@@ -629,6 +632,9 @@ function ApplicationRow({ app, sampleId, bgColor, isSelected, onToggle, onEdit, 
       </td>
       <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600">
         {app.gender ?? '—'}
+      </td>
+      <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600">
+        {app.accent ?? '—'}
       </td>
       <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600 min-w-[260px]">
         {loadingAudio ? (
