@@ -62,6 +62,7 @@ const EMPTY_EDIT = {
   email: '',
   age: '',
   gender: '',
+  accent: '',
   country_of_origin: '',
   state_of_origin: '',
   country_of_residence: '',
@@ -174,6 +175,7 @@ export default function VideoApplicationsTable({
       email: app.email || '',
       age: app.age ?? '',
       gender: app.gender || '',
+      accent: app.accent || '',
       country_of_origin: app.country_of_origin || '',
       state_of_origin: app.state_of_origin || '',
       country_of_residence: app.country_of_residence || '',
@@ -299,6 +301,7 @@ export default function VideoApplicationsTable({
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Location</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Age</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Gender</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Accent</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Origin</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Residence</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Home Studio</th>
@@ -390,6 +393,12 @@ export default function VideoApplicationsTable({
                     onChange={(e) => setEditForm((f) => ({ ...f, gender: e.target.value }))}
                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-600 focus:ring-blue-600" />
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Accent</label>
+                <input type="text" value={editForm.accent}
+                  onChange={(e) => setEditForm((f) => ({ ...f, accent: e.target.value }))}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-600 focus:ring-blue-600" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -499,6 +508,7 @@ function VideoApplicationRow({ app, sampleId, bgColor, isSelected, onToggle, onE
       <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600">{formatLocation(app)}</td>
       <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600">{app.age ?? '—'}</td>
       <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600">{app.gender ?? '—'}</td>
+      <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600">{app.accent ?? '—'}</td>
       <td className="px-3 py-3 whitespace-nowrap text-sm text-slate-600">
         {[app.state_of_origin, app.country_of_origin].filter(Boolean).join(', ') || '—'}
       </td>
