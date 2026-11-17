@@ -69,6 +69,7 @@ export default function TalentPoolTable({
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [accentFilter, setAccentFilter] = useState('');
   const [flagFilter, setFlagFilter] = useState('');
+  const [networkFilter, setNetworkFilter] = useState('');
   const [bulkArchiving, setBulkArchiving] = useState(false);
   const headerCheckboxRef = useRef(null);
 
@@ -121,9 +122,10 @@ export default function TalentPoolTable({
         (app) =>
           (view === 'active' ? !isArchived(app) : isArchived(app)) &&
           (!accentFilter || (app.accent || '') === accentFilter) &&
-          (!flagFilter || (app.location_flag || '') === flagFilter)
+          (!flagFilter || (app.location_flag || '') === flagFilter) &&
+          (!networkFilter || (app.network_flag || '') === networkFilter)
       ),
-    [allApplications, view, accentFilter, flagFilter]
+    [allApplications, view, accentFilter, flagFilter, networkFilter]
   );
 
   const totalPages = Math.max(1, Math.ceil(visibleApplications.length / rowsPerPage));
@@ -238,6 +240,7 @@ export default function TalentPoolTable({
 
   const getRowColor = (app) => {
     if (app.location_flag === 'mismatch') return 'hsl(0 84% 95%)';
+    if (app.network_flag === 'vpn_or_datacenter') return 'hsl(35 90% 92%)';
     const email = (app.email || '').toLowerCase().trim();
     const name = (app.full_name || '').toLowerCase().trim();
     if (duplicateColors[email]) return duplicateColors[email];
@@ -283,6 +286,20 @@ export default function TalentPoolTable({
           <option value="">All</option>
           <option value="match">Match</option>
           <option value="mismatch">Mismatch</option>
+          <option value="unknown">Unknown</option>
+        </select>
+        <label htmlFor="talent-network-filter" className="text-sm font-medium text-slate-600 ml-4">
+          Network:
+        </label>
+        <select
+          id="talent-network-filter"
+          value={networkFilter}
+          onChange={(e) => setNetworkFilter(e.target.value)}
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-blue-600 focus:ring-blue-600"
+        >
+          <option value="">All</option>
+          <option value="vpn_or_datacenter">VPN / datacenter</option>
+          <option value="clean">Clean</option>
           <option value="unknown">Unknown</option>
         </select>
       </div>
@@ -335,6 +352,7 @@ export default function TalentPoolTable({
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Residence (claimed)</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">IP Location (detected)</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Location Check</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Network</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Languages</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Interests</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Availability</th>
@@ -544,6 +562,17 @@ function TalentPoolRow({ app, sampleId, bgColor, isSelected, onToggle, onEdit, o
       <td className="px-3 py-3 text-sm whitespace-nowrap">
         <span className={`inline-flex rounded-full px-2.5 py-1 text-xs ${flagStyle}`}>
           {flag === 'mismatch' ? '⚠ Mismatch' : flag}
+        </span>
+      </td>
+      <td className="px-3 py-3 text-sm whitespace-nowrap">
+        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs ${
+          app.network_flag === 'vpn_or_datacenter'
+            ? 'bg-amber-100 text-amber-800 font-semibold'
+            : app.network_flag === 'clean'
+            ? 'bg-green-100 text-green-800'
+            : 'bg-slate-100 text-slate-600'
+        }`} title={app.isp_org || ''}>
+          {app.network_flag === 'vpn_or_datacenter' ? '⚠ VPN/DC' : app.network_flag || 'unknown'}
         </span>
       </td>
       <td className="px-3 py-3 text-sm text-slate-600">
