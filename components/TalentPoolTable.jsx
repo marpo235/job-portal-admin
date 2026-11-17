@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import * as XLSX from 'xlsx';
 import { supabase } from '@/lib/supabaseClient';
 
 function isArchived(app) {
@@ -238,14 +239,84 @@ export default function TalentPoolTable({
     setBulkArchiving(false);
   };
 
+  // Triage categories — drives row colour, badges, and the XLSX export tabs.
+  // Priority: PM-accepted > VPN > location mismatch > match > unknown.
+  function categorize(app) {
+    if (app.pm_accepted === true || app.pm_accepted === 1) return 'accepted';
+    if (app.network_flag === 'vpn_or_datacenter') return 'vpn';
+    if (app.location_flag === 'match') return 'matched';
+    return 'mismatched'; // location mismatch OR unverifiable
+  }
+
   const getRowColor = (app) => {
-    if (app.location_flag === 'mismatch') return 'hsl(0 84% 95%)';
-    if (app.network_flag === 'vpn_or_datacenter') return 'hsl(35 90% 92%)';
+    const cat = categorize(app);
+    if (cat === 'accepted') return 'hsl(210 90% 93%)';   // light blue
+    if (cat === 'vpn') return 'hsl(35 90% 92%)';         // light amber
+    if (cat === 'mismatched') return 'hsl(0 84% 95%)';   // light red
+    if (cat === 'matched') return 'hsl(140 70% 92%)';    // light green
     const email = (app.email || '').toLowerCase().trim();
     const name = (app.full_name || '').toLowerCase().trim();
     if (duplicateColors[email]) return duplicateColors[email];
     if (duplicateColors[name]) return duplicateColors[name];
     return undefined;
+  };
+
+  const toggleAccepted = async (app) => {
+    const target = { pm_accepted: !(app.pm_accepted === true || app.pm_accepted === 1) };
+    const { error } = await supabase
+      .from('talent_pool')
+      .update(target)
+      .eq('id', app.id);
+    if (error) {
+      alert(`Update failed: ${error.message}`);
+      return;
+    }
+    onUpdate(app.id, target);
+    if (onRefresh) onRefresh();
+  };
+
+  // --- XLSX export ----------------------------------------------------------
+  const exportRows = (apps) =>
+    apps.map((app) => ({
+      'Sample ID': sampleIdMap[app.id] || '',
+      'Full Name': app.full_name || '',
+      'Email': app.email || '',
+      'Age': app.age ?? '',
+      'Accent': app.accent || '',
+      'Country of Origin': app.country_of_origin || '',
+      'State of Origin': app.state_of_origin || '',
+      'Country of Residence': app.country_of_residence || '',
+      'State of Residence': app.state_of_residence || '',
+      'Native Languages': app.native_languages || '',
+      'Other Languages': app.other_languages || '',
+      'Project Interests': formatInterests(app) === '—' ? '' : formatInterests(app),
+      'Weekly Hours': formatWeeklyHours(app.weekly_hours),
+      'Device': app.device || '',
+      'Home Studio': app.home_studio ? 'Yes' : 'No',
+      'Comments': app.comments || '',
+      'IP Address': app.ip_address || '',
+      'Detected City': app.city || '',
+      'Detected Region': app.region || '',
+      'Detected Country': app.country || '',
+      'ISP / Org': app.isp_org || '',
+      'Network Flag': app.network_flag || '',
+      'Location Flag': app.location_flag || '',
+      'PM Accepted': app.pm_accepted ? 'Yes' : 'No',
+      'Reference': app.applicant_ref || '',
+      'Submitted At': app.submitted_at || '',
+    }));
+
+  const exportXlsx = () => {
+    const active = allApplications.filter((app) => !isArchived(app));
+    const groups = { matched: [], vpn: [], mismatched: [], accepted: [] };
+    for (const app of active) groups[categorize(app)].push(app);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exportRows(groups.matched)), 'Matched');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exportRows(groups.vpn)), 'VPN Used');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exportRows(groups.mismatched)), 'Not Matched');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exportRows(groups.accepted)), 'PM Accepted');
+    const stamp = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `talent_pool_export_${stamp}.xlsx`);
   };
 
   if (loading) {
@@ -302,6 +373,12 @@ export default function TalentPoolTable({
           <option value="clean">Clean</option>
           <option value="unknown">Unknown</option>
         </select>
+        <button
+          onClick={exportXlsx}
+          className="ml-auto inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-slate-800 transition"
+        >
+          Export XLSX
+        </button>
       </div>
       {selectedIds.size > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-end gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -373,6 +450,7 @@ export default function TalentPoolTable({
                     onToggle={toggleSelect}
                     onEdit={openEdit}
                     onArchive={toggleArchive}
+                    onToggleAccept={toggleAccepted}
                   />
                 ))}
               </tbody>
@@ -528,7 +606,7 @@ export default function TalentPoolTable({
   );
 }
 
-function TalentPoolRow({ app, sampleId, bgColor, isSelected, onToggle, onEdit, onArchive }) {
+function TalentPoolRow({ app, sampleId, bgColor, isSelected, onToggle, onEdit, onArchive, onToggleAccept }) {
   const flag = app.location_flag || 'unknown';
   const flagStyle = {
     match: 'bg-green-100 text-green-800',
@@ -563,6 +641,9 @@ function TalentPoolRow({ app, sampleId, bgColor, isSelected, onToggle, onEdit, o
         <span className={`inline-flex rounded-full px-2.5 py-1 text-xs ${flagStyle}`}>
           {flag === 'mismatch' ? '⚠ Mismatch' : flag}
         </span>
+        {(app.pm_accepted === true || app.pm_accepted === 1) && (
+          <span className="inline-flex rounded-full px-2.5 py-1 text-xs bg-blue-100 text-blue-800 font-semibold ml-1">✓ PM</span>
+        )}
       </td>
       <td className="px-3 py-3 text-sm whitespace-nowrap">
         <span className={`inline-flex rounded-full px-2.5 py-1 text-xs ${
@@ -572,7 +653,7 @@ function TalentPoolRow({ app, sampleId, bgColor, isSelected, onToggle, onEdit, o
             ? 'bg-green-100 text-green-800'
             : 'bg-slate-100 text-slate-600'
         }`} title={app.isp_org || ''}>
-          {app.network_flag === 'vpn_or_datacenter' ? '⚠ VPN/DC' : app.network_flag || 'unknown'}
+          {app.network_flag === 'vpn_or_datacenter' ? '⚠ VPN USED' : app.network_flag || 'unknown'}
         </span>
       </td>
       <td className="px-3 py-3 text-sm text-slate-600">
@@ -591,6 +672,21 @@ function TalentPoolRow({ app, sampleId, bgColor, isSelected, onToggle, onEdit, o
         >
           Edit
         </button>
+        {(app.pm_accepted === true || app.pm_accepted === 1) ? (
+          <button
+            onClick={() => onToggleAccept(app)}
+            className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition mr-2"
+          >
+            Revoke
+          </button>
+        ) : (app.network_flag === 'vpn_or_datacenter' || app.location_flag === 'mismatch') && (
+          <button
+            onClick={() => onToggleAccept(app)}
+            className="rounded-lg border border-blue-300 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50 transition mr-2"
+          >
+            Accept
+          </button>
+        )}
         <button
           onClick={() => onArchive(app)}
           className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
