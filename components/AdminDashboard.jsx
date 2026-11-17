@@ -6,6 +6,7 @@ import Header from './Header';
 import Login from './Login';
 import ApplicationsTable from './ApplicationsTable';
 import VideoApplicationsTable from './VideoApplicationsTable';
+import TalentPoolTable from './TalentPoolTable';
 import ContactQueries from './ContactQueries';
 
 const allowedAdminEmails = (process.env.NEXT_PUBLIC_ALLOWED_ADMIN_EMAILS || '')
@@ -18,10 +19,12 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [applications, setApplications] = useState([]);
   const [videoApplications, setVideoApplications] = useState([]);
+  const [talentApplications, setTalentApplications] = useState([]);
   const [contactQueries, setContactQueries] = useState([]);
   const [search, setSearch] = useState('');
   const [recordingsView, setRecordingsView] = useState('active');
   const [videoView, setVideoView] = useState('active');
+  const [talentView, setTalentView] = useState('active');
   const [activeSection, setActiveSection] = useState('recordings');
   const [accessDenied, setAccessDenied] = useState(false);
 
@@ -42,6 +45,12 @@ export default function AdminDashboard() {
 
   const handleUpdateVideoApplication = (id, updates) => {
     setVideoApplications((prev) =>
+      prev.map((app) => (app.id === id ? { ...app, ...updates } : app))
+    );
+  };
+
+  const handleUpdateTalentApplication = (id, updates) => {
+    setTalentApplications((prev) =>
       prev.map((app) => (app.id === id ? { ...app, ...updates } : app))
     );
   };
@@ -110,6 +119,20 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchTalentApplications = async () => {
+    const { data, error } = await supabase
+      .from('talent_pool')
+      .select('*')
+      .order('submitted_at', { ascending: false });
+
+    if (error) {
+      console.error('Failed to fetch talent registrations:', error);
+      setTalentApplications([]);
+    } else {
+      setTalentApplications(data || []);
+    }
+  };
+
   const checkUser = async (session) => {
     if (!session?.user) {
       setUser(null);
@@ -130,6 +153,7 @@ export default function AdminDashboard() {
     setAccessDenied(false);
     await fetchApplications();
     await fetchVideoApplications();
+    await fetchTalentApplications();
     await fetchContactQueries();
     setLoading(false);
   };
@@ -159,6 +183,8 @@ export default function AdminDashboard() {
   const archivedCount = applications.length - activeCount;
   const videoActiveCount = videoApplications.filter((app) => !isArchived(app)).length;
   const videoArchivedCount = videoApplications.length - videoActiveCount;
+  const talentActiveCount = talentApplications.filter((app) => !isArchived(app)).length;
+  const talentArchivedCount = talentApplications.length - talentActiveCount;
   const contactCount = contactQueries.length;
 
   if (loading) {
@@ -244,6 +270,32 @@ export default function AdminDashboard() {
             Archived Video Recordings ({videoArchivedCount})
           </button>
           <button
+            onClick={() => {
+              setActiveSection('talent');
+              setTalentView('active');
+            }}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+              activeSection === 'talent' && talentView === 'active'
+                ? 'bg-slate-900 text-white'
+                : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+            }`}
+          >
+            Talent Pool ({talentActiveCount})
+          </button>
+          <button
+            onClick={() => {
+              setActiveSection('talent');
+              setTalentView('archived');
+            }}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+              activeSection === 'talent' && talentView === 'archived'
+                ? 'bg-slate-900 text-white'
+                : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+            }`}
+          >
+            Archived Talent ({talentArchivedCount})
+          </button>
+          <button
             onClick={() => setActiveSection('contact')}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
               activeSection === 'contact'
@@ -314,6 +366,31 @@ export default function AdminDashboard() {
               onUpdate={handleUpdateVideoApplication}
               onRefresh={fetchVideoApplications}
               view={videoView}
+            />
+          </>
+        )}
+
+        {activeSection === 'talent' && (
+          <>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-slate-900">
+                {talentView === 'archived'
+                  ? 'Archived Talent — General Database'
+                  : 'Talent Pool — General Database'}
+              </h2>
+              <p className="text-slate-600 text-sm">
+                {talentView === 'archived'
+                  ? 'View previously archived talent registrations.'
+                  : 'General talent-database registrations. Rows highlighted red have a claimed residence that does not match the detected IP location.'}
+              </p>
+            </div>
+
+            <TalentPoolTable
+              applications={talentApplications}
+              loading={false}
+              onUpdate={handleUpdateTalentApplication}
+              onRefresh={fetchTalentApplications}
+              view={talentView}
             />
           </>
         )}
